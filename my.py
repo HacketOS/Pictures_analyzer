@@ -36,12 +36,7 @@ def analyse_img(name, way):
         data.append(dom_col[i][2])
         dom_clr = np.hstack((dom_clr,np.full((img.shape[0], img.shape[1]//5,3), dom_col[i], dtype = 'uint8')))
     out_img = np.hstack((img, dom_clr))
-    #printing the way in console
-    print(way + '/dom_clr/'+name.split('/')[len(name.split('/'))-1])
-    flag = cv2.imwrite(way + '/dom_clr/'+name.split('/')[len(name.split('/'))-1],out_img)
-    #file write status flag
-    print(flag)
-
+    cv2.imwrite(way + './dom_clr/'+name.split('/')[len(name.split('/'))-1],out_img)
     # Picture contours filling
     canny = cv2.Canny(imgray, 120, 50)
     filling = np.zeros((3,3))
@@ -49,18 +44,21 @@ def analyse_img(name, way):
         for column in np.arange(0,3):
             data.append(canny[120*column:120*(column+1)-1,160*line:160*(line+1)-1].mean()/255)
     #corners count
-    dst = cv2.cornerHarris(imgray, 2, 3, 0.04)
+    thresh = cv2.adaptiveThreshold(imgray,255,cv2.ADAPTIVE_THRESH_MEAN_C,cv2.THRESH_BINARY,11,3)
+    thresh_smoth = cv2.GaussianBlur(thresh,(7,7),1)
+    dst = cv2.cornerHarris(thresh_smoth, 9,3, 0.2)
+    dst = cv2.cornerHarris(thresh_smoth, 2, 3, 0.04)
     dst = cv2.dilate(dst,None)
     data.append(img[dst>0.1*dst.max()].shape[0])
     #count elipses
-    contours0, hierarchy = cv2.findContours(canny, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    thresh = cv2.adaptiveThreshold(imgray,255,cv2.ADAPTIVE_THRESH_MEAN_C,cv2.THRESH_BINARY,11,3)
+    contours0, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     elipse_count = 0
     for cnt in contours0:
         if len(cnt)>10 and len(cnt)<480:
             elipse_count +=1
     data.append(elipse_count)
     return np.array(data)
-
 
 class Window(QWidget):
 
